@@ -1,1 +1,1 @@
-This is a demo page. Editing using Go web app.
+This is a demo page. Editing using Go web app. Optimised code.
