@@ -26,6 +26,12 @@ func loadPage(title string) (*Page, error) {
 	return &Page{Title: title, Body: body}, nil
 }
 
+/*
+	renderTemplate method takes ResponseWriter and template name and
+	Page as arguments. It will parse the HTML template and create an
+	HTML file by placing the values from Page struct into an HTML
+	template. This will help create dynamic HTML pages.
+ */
 func renderTemplate(w http.ResponseWriter, tmpl string, page *Page) {
     t, err := template.ParseFiles(tmpl + ".html")
 	if err != nil {
