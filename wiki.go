@@ -1,7 +1,7 @@
 package main
 
 import (
-		"html/template"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -26,6 +26,9 @@ func loadPage(title string) (*Page, error) {
 	return &Page{Title: title, Body: body}, nil
 }
 
+// Cache templates by parsing them at the starting of the app
+var templates = template.Must(template.ParseFiles("edit.html", "view.html"))
+
 /*
 	renderTemplate method takes ResponseWriter and template name and
 	Page as arguments. It will parse the HTML template and create an
@@ -33,12 +36,7 @@ func loadPage(title string) (*Page, error) {
 	template. This will help create dynamic HTML pages.
  */
 func renderTemplate(w http.ResponseWriter, tmpl string, page *Page) {
-    t, err := template.ParseFiles(tmpl + ".html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-    err = t.Execute(w, page)
+    err := templates.ExecuteTemplate(w, tmpl+".html", page)
     if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
     }
