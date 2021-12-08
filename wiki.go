@@ -1,20 +1,20 @@
 package main
 
 import (
-	"fmt"
+		"html/template"
 	"log"
 	"net/http"
 	"os"
 )
 
 type Page struct {
-	title string
-	body []byte
+	Title string
+	Body []byte
 }
 
 func (p *Page) save() error {
-	filename := p.title + ".txt"
-	return os.WriteFile(filename, p.body, 0600)
+	filename := p.Title + ".txt"
+	return os.WriteFile(filename, p.Body, 0600)
 }
 
 func loadPage(title string) (*Page, error) {
@@ -23,21 +23,55 @@ func loadPage(title string) (*Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Page{title: title, body: body}, nil
+	return &Page{Title: title, Body: body}, nil
+}
+
+func renderTemplate(w http.ResponseWriter, tmpl string, page *Page) {
+    t, err := template.ParseFiles(tmpl + ".html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+    err = t.Execute(w, page)
+    if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+    }
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
 	title := r.URL.Path[len("/view/"):]
-	p, err := loadPage(title)
+	page, err := loadPage(title)
 	if err != nil {
-		msg := "Page Not Found 404"
-		fmt.Fprintf(w, "<h1>%s</h1>", msg)
+		http.Redirect(w, r, "/edit/"+title, http.StatusFound)
 		return
 	}
-	fmt.Fprintf(w, "<h1>%s</h1><div>%s</div>", p.title, p.body)
+	renderTemplate(w, "view", page)
+}
+
+func editHandler(w http.ResponseWriter, r *http.Request) {
+	title := r.URL.Path[len("/edit/"):]
+	page, err := loadPage(title)
+	if err != nil {
+		page = &Page{Title: title}
+	}
+	renderTemplate(w, "edit", page)
+}
+
+func saveHandler(w http.ResponseWriter, r *http.Request) {
+	title := r.URL.Path[len("/save/"):]
+	body := r.FormValue("body")
+	page := &Page{Title: title, Body: []byte(body)}
+	err := page.save()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/view/"+title, http.StatusFound)
 }
 
 func main() {
 	http.HandleFunc("/view/", viewHandler)
+	http.HandleFunc("/edit/", editHandler)
+	http.HandleFunc("/save/", saveHandler)
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }
